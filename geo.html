@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Captura de geolocalización</title>
+  <style> body{font-family:system-ui,Segoe UI,Arial;margin:24px} code{background:#f4f4f4;padding:2px 4px} </style>
+</head>
+<body>
+<h3>Prueba de geolocalización</h3>
+<div id="log">Cargando...</div>
+
+<script>
+const $ = (t)=>document.getElementById('log').innerHTML = t;
+
+(async () => {
+  try {
+    $('Pidiendo permiso de ubicación…');
+
+    async function getGeo() {
+      if (!navigator.geolocation) return { lat: null, lon: null, err:'no-geolocation' };
+      return await new Promise((res) => {
+        navigator.geolocation.getCurrentPosition(
+          p => res({ lat: p.coords.latitude, lon: p.coords.longitude }),
+          e => res({ lat: null, lon: null, err: e.message }),
+          { enableHighAccuracy:true, timeout:15000 }
+        );
+      });
+    }
+
+    const g = await getGeo();
+    console.log('Geo:', g);
+    $('Ubicación: <code>'+JSON.stringify(g)+'</code>');
+
+    const ts = new Date().toISOString();
+    $('Enviando a backend…');
+
+    const r = await fetch("http://127.0.0.1:5000/geo-capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: g.lat, lon: g.lon, ts, debug:true })
+    });
+
+    const j = await r.json();
+    console.log('Respuesta backend:', j);
+    $('OK, guardado: <code>'+JSON.stringify(j)+'</code>');
+  } catch (e) {
+    console.error(e);
+    $('Error en página: <code>'+e+'</code>');
+  }
+})();
+</script>
+</body>
+</html>
